@@ -22,12 +22,12 @@ $shortcuts = @(foreach ($location in $locations.Keys) {
         $link = $shell.CreateShortcut($file.FullName)
         if ($file.BaseName -notmatch 'Antigravity' -and
             $link.TargetPath -notmatch 'Antigravity\.exe$' -and
-            $link.Arguments -notmatch '(?:Antigravity\.exe|Start-Antigravity-Proxy\.ps1)') { continue }
+            $link.Arguments -notmatch '(?:Antigravity\.exe|Start-Antigravity-(?:Proxy|Taskbar)\.ps1)') { continue }
         [pscustomobject]@{
             Location = $location
             Path = $file.FullName
             Target = $link.TargetPath
-            KnownProxyLauncher = $link.Arguments -match '(?:Start-Antigravity-Proxy|Start-WithProxy)\.ps1'
+            KnownProxyLauncher = $link.Arguments -match '(?:Start-Antigravity-(?:Proxy|Taskbar)|Start-WithProxy)\.ps1'
             BrowserProxyFlag = $link.Arguments -match '(?:^|\s)--proxy-server(?:=|\s)'
         }
     }

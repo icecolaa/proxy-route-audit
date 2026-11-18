@@ -4,7 +4,7 @@ description: Audit Windows proxy routing for Antigravity, its language server, a
 metadata:
   skillhub:
     slug: icecolaa-proxy-route-audit
-    version: 1.0.1
+    version: 1.0.2
     displayName: Windows 代理线路巡检
     summary: 备份 Windows 网络状态，核对 Antigravity、CLI 与代理出口。
     tags: [windows, proxy, networking, antigravity]
@@ -27,4 +27,12 @@ metadata:
 
 如果重开应用后又出现直连，用 [入口检查脚本](scripts/Get-AntigravityLaunchState.ps1) 对照桌面、开始菜单和任务栏的快捷方式，以及当前 Windows 会话里的进程。重点检查实际使用的入口。桌面快捷方式指向裸 EXE 时，即使开始菜单入口已经修复，仍可能启动未继承代理环境的实例。先备份将编辑的快捷方式，再保留原图标和工作目录并改为调用代理启动器。正常关闭应用后，用修好的入口打开，核对新主进程的代理参数、语言服务的 TCP 去向，以及模型选择器是否真能显示模型。`--import` 辅助进程可以保留。
 
-任务栏固定入口可能被 Windows 重建。再次看到它指向裸 EXE 时，从已验证的桌面或开始菜单入口启动，并把任务栏入口单独记录为未通过。
+### 修复任务栏固定入口
+
+Windows 可能把原应用的任务栏固定项重建为裸 EXE。需要修复时，备份旧快捷方式，将 [任务栏启动器](scripts/Start-Antigravity-Taskbar.ps1) 放到稳定的本地目录。在当前用户的开始菜单中创建独立的 **Antigravity Proxy** 快捷方式，目标设为 Windows PowerShell，图标可取自 Antigravity。参数示例：
+
+```text
+-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "<本地启动器绝对路径>" -ProxyUri "http://127.0.0.1:15236"
+```
+
+使用 Windows 界面固定 **Antigravity Proxy** 到任务栏，取消固定原应用项。启动器对代理监听失败做弹窗提示，并拒绝用已有的无代理实例继续启动。完全退出主应用，再实际点击新固定图标。验收时确认旧固定项已移除、冷启动主进程带代理参数、语言服务连接到回环代理，且模型选择器加载成功。
