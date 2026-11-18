@@ -29,8 +29,14 @@ if ($Electron) {
     if ($tool.CommandType -ne 'Application' -or [IO.Path]::GetExtension($tool.Source) -ne '.exe') {
         throw 'Select the Electron application executable.'
     }
-    $name = [IO.Path]::GetFileNameWithoutExtension($tool.Source)
-    if (Get-Process -Name $name -ErrorAction SilentlyContinue | Where-Object Path -eq $tool.Source) {
+    $name = [IO.Path]::GetFileName($tool.Source)
+    $sessionId = (Get-Process -Id $PID).SessionId
+    $running = Get-CimInstance Win32_Process -Filter "SessionId=$sessionId" |
+        Where-Object { $_.Name -eq $name -and $_.ExecutablePath -eq $tool.Source }
+    if ($name -eq 'Antigravity.exe') {
+        $running = $running | Where-Object { $_.CommandLine -notmatch '(?:^|\s)--import(?:\s|=|$)' }
+    }
+    if ($running) {
         throw 'Close the running Electron application before starting it with proxy settings.'
     }
     $ToolArguments = @("--proxy-server=$proxy", '--disable-quic') + $ToolArguments
@@ -47,8 +53,17 @@ try {
         $previous[$name] = [Environment]::GetEnvironmentVariable($name, 'Process')
         [Environment]::SetEnvironmentVariable($name, $variables[$name], 'Process')
     }
-    & $tool @ToolArguments
-    $toolExitCode = $LASTEXITCODE
+    if ($Electron) {
+        $start = [Diagnostics.ProcessStartInfo]::new($tool.Source)
+        $start.WorkingDirectory = [IO.Path]::GetDirectoryName($tool.Source)
+        $start.UseShellExecute = $false
+        foreach ($argument in $ToolArguments) { $start.ArgumentList.Add($argument) }
+        $child = [Diagnostics.Process]::Start($start)
+        $child.Dispose()
+    } else {
+        & $tool @ToolArguments
+        $toolExitCode = $LASTEXITCODE
+    }
 } finally {
     foreach ($name in $previous.Keys) {
         [Environment]::SetEnvironmentVariable($name, $previous[$name], 'Process')

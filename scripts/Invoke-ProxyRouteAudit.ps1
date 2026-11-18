@@ -35,6 +35,7 @@ $targets = [ordered]@{
     OAuth = 'https://oauth2.googleapis.com/token'
     Accounts = 'https://accounts.google.com/.well-known/openid-configuration'
     Antigravity = 'https://antigravity.googleapis.com/'
+    LoadCodeAssist = 'https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist'
     CloudCode = 'https://cloudcode-pa.googleapis.com/'
     Gemini = 'https://generativelanguage.googleapis.com/'
 }
@@ -45,6 +46,7 @@ $job = Start-ThreadJob -ArgumentList $targets, $ProxyUri.AbsoluteUri -ScriptBloc
         $options = @('--disable','--noproxy','','--proxy',$proxy,'--max-time','6','--silent')
         if (-not $isIpProbe) { $options += @('--output','NUL') }
         if ($name -eq 'OAuth') { $options += @('--request','POST','--header','Content-Length: 0') }
+        if ($name -eq 'LoadCodeAssist') { $options += @('--header','Content-Type: application/json','--data','{}') }
         $response = & curl.exe @options --write-out '\n%{http_code} %{http_connect}' $urls[$name]
         $exitCode = $LASTEXITCODE
         $status = ([string]($response | Select-Object -Last 1)).Trim() -split '\s+'
